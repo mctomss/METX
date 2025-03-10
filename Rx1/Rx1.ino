@@ -1,3 +1,12 @@
+/*
+Escuela Colombiana de Ingenieria Julio Garavito
+Luis Francisco Leal Baute
+Edgar Daniel Ruiz Patiño
+Tomás Felipe Montañez Piñeros
+
+Descripción: Codigo para la ESP32 Receptora.
+*/
+
 #include <LoRa.h>
 #include <SPI.h>
 #include <WiFi.h>
@@ -21,10 +30,12 @@ ThingerESP32 thing(USERNAME, DEVICE_ID, DEVICE_CREDENTIAL);
 #define rst 14
 #define dio0 2
 
-float h1, t1, h2, t2, w, v, db;  // Variables globales
-int c, contador, prx;            // Variables globales
-float voltage_ref = 1.0;         // Referencia de 1V
+// Variables globales
+float h1, t1, h2, t2, w, v, db;
+int c, contador, prx;
+float voltage_ref = 1.0; // Referencia de 1V
 
+// Función para imprimir el estado del WiFi
 void printWiFiStatus() {
   switch (WiFi.status()) {
     case WL_IDLE_STATUS:
@@ -49,6 +60,7 @@ void printWiFiStatus() {
   }
 }
 
+// Función para iniciar la conexión WiFi y configurar Thinger.io
 void Iniciar() {
   pinMode(2, OUTPUT);
 
@@ -77,6 +89,7 @@ void Iniciar() {
   thing["GPIO_2"] << digitalPin(2);
 }
 
+// Función para configurar el módulo LoRa
 void setupLoRa() {
   Serial.println("Configurando LoRa...");
   LoRa.setPins(ss, rst, dio0);  // Configurar módulo LoRa
@@ -89,6 +102,7 @@ void setupLoRa() {
   Serial.println("LoRa configurado correctamente!");
 }
 
+// Función de configuración inicial
 void setup() {
   Serial.begin(115200);  // Velocidad de comunicación
   Iniciar();
@@ -132,14 +146,12 @@ void setup() {
     Serial.println("Se envió Total Datos Enviados: " + String(contador));
   };
 
-
-  //VARIABLES PARA LA INTERFAZ DE USUARIO
+  // Variables para la interfaz de usuario
   // Porcentaje de miel
   thing["miel_porcentaje"] >> [](pson &out) {
     out = (w / 4.0) * 100;  // Convertir de 0-4 kg a 0-100%
     Serial.println("Se envió miel_porcentaje: " + String((w / 4.0) * 100) + "%");
   };
-
 
   // Estado de la temperatura
   thing["estado_temperatura"] >> [](pson &out) {
@@ -177,6 +189,7 @@ void setup() {
     Serial.println("Se envió estado_humedad: " + String(out));
   };
 
+  // Enviar todos los datos a Thinger.io
   thing["DATA_METX"] >> [](pson &out) {
     out["Humedad_i"] = h1;
     out["Humedad_e"] = h2;
@@ -191,6 +204,7 @@ void setup() {
   };
 }
 
+// Bucle principal
 void loop() {
   // Lógica de Thinger.io
   thing.handle();

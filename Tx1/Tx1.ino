@@ -1,3 +1,13 @@
+/*
+Escuela Colombiana de Ingenieria Julio Garavito
+Luis Francisco Leal Baute
+Edgar Daniel Ruiz Patiño
+Tomás Felipe Montañez Piñeros
+
+Descripción: Codigo para la ESP32 Transmisora.
+*/
+
+// Librerías necesarias
 #include <DHT.h>
 #include <DHT_U.h>
 #include <LoRa.h>
@@ -5,7 +15,7 @@
 #include "HX711.h"
 #include <driver/i2s.h>
 
-// PINES y constantes
+// Definición de pines y constantes
 const int LOADCELL_DOUT_PIN = 16;
 const int LOADCELL_SCK_PIN = 15;
 #define DHTPIN 4 
@@ -20,19 +30,21 @@ const int LOADCELL_SCK_PIN = 15;
 #define I2S_SCK 32
 #define I2S_PORT I2S_NUM_0
 
+// Parámetros para el buffer y el rango de abejas
 #define bufferLen 64
 int16_t sBuffer[bufferLen];
 #define MIN_BEES 0
 #define MAX_BEES 1000
 
+// Variables globales
 int contador = 0;
 DHT dht1(DHTPIN, DHTTYPE);
 DHT dht2(DHTPIN2, DHTTYPE2);
 HX711 scale;
-
 unsigned long lastTime = 0;
 const unsigned long interval = 1000; // Intervalo en milisegundos
 
+// Función para instalar el driver I2S
 void i2s_install() {
     const i2s_config_t i2s_config = {
         .mode = i2s_mode_t(I2S_MODE_MASTER | I2S_MODE_RX),
@@ -49,6 +61,7 @@ void i2s_install() {
     i2s_driver_install(I2S_PORT, &i2s_config, 0, NULL);
 }
 
+// Función para configurar los pines I2S
 void i2s_setpin() {
     const i2s_pin_config_t pin_config = {
         .bck_io_num = I2S_SCK,
@@ -73,8 +86,7 @@ void setupLoRa() {
     Serial.println("LoRa configurado correctamente!");
 }
 
-// Leer sensores
-// Leer datos de micrófono
+// Función para leer los sensores
 void LeerSensores() {
     delay(2000); // Espera para el sensor DHT
     float h1 = dht1.readHumidity();
@@ -87,16 +99,17 @@ void LeerSensores() {
         return;
     }
     if (isnan(h2) || isnan(t2)) {
-      Serial.println("Error leyendo del sensor DHT11");
-      return;
+        Serial.println("Error leyendo del sensor DHT11");
+        return;
     }
+
     // Leer peso de la báscula
     float weight = scale.get_units(10);
 
     // Procesar datos del micrófono
     float voltageRMS = 0;
     int estimatedBees = 0;
-    float mayor_dato = 0; // Nuevo: Almacena el dato máximo absoluto
+    float mayor_dato = 0; // Almacena el dato máximo absoluto
 
     size_t bytesIn = 0;
     esp_err_t result = i2s_read(I2S_PORT, &sBuffer, bufferLen * sizeof(int16_t), &bytesIn, portMAX_DELAY);
@@ -124,8 +137,7 @@ void LeerSensores() {
     enviarDatos(h1, t1, weight, voltageRMS, estimatedBees, h2, t2);
 }
 
-
-// Enviar datos
+// Función para enviar datos a través de LoRa
 void enviarDatos(float h1, float t1, float w, float vRMS, int bees, float h2, float t2) {
     char sensores[100]; // Asegurar suficiente espacio
     snprintf(sensores, sizeof(sensores), "%.2f/%.2f/%.2f/%.3f/%d/%d/%f/%f", h1, t1, w, vRMS, bees, contador, h2, t2);
@@ -137,7 +149,7 @@ void enviarDatos(float h1, float t1, float w, float vRMS, int bees, float h2, fl
     contador++;
 }
 
-// INICIO PROGRAMA
+// Función de configuración inicial
 void setup() {
     Serial.begin(115200);
     Serial.println("Iniciando sistema...");
@@ -152,6 +164,7 @@ void setup() {
     i2s_start(I2S_PORT);
 }
 
+// Bucle principal
 void loop() {
     if (millis() - lastTime >= interval) {
         lastTime = millis();
